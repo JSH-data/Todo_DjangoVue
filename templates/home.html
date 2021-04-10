@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+
+{% block title %} home.html {% endblock  %}
+{% block extra-style %}
+<style>
+.wrapper{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+</style>
+{% endblock  %}
+{% block content %}    
+    <div class='wrapper'>
+        <span data-toggle="tooltip" data-placement="top" title="Tooltip on top">Tooltip on top</span>
+    </div>
+{% endblock  %}
+
+{% block footer %}
+{% endblock %}
+
+{% block extra-script %}
+<script>
+$(function () {
+	$('[data-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock %}

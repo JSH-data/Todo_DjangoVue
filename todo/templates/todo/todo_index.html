@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Vue - Django{% endblock %}  <!--SEO문제 해결을 위해 중요한 문장을 삽입시켜주는 것이 중요 검색엔진에 노출될 수 있기 때문-->
+
+{% block extra-style %}
+<style>
+.inputBox {
+background-color: white;
+display: flex;
+border-radius: 30px;
+justify-content: center;
+margin:auto;
+width: 80%;
+height: 50%;
+}
+
+ul{
+   list-style:none;
+}
+
+.inputBox__name {
+border-style:none;
+border-bottom:1px solid #ddd;
+width: 40%;
+margin-left: 20px;
+}
+
+.inputBox__todo {
+border-style:none;
+border-bottom:1px solid #ddd;
+width: 60%;
+margin-left: 10px;
+}
+
+.inputBox__add {
+border-style:none;
+border-bottom:1px solid #ddd;
+margin-right : 20px;
+width: 200px;
+}
+
+.todoList {
+text-align: left;
+}
+
+.todoList li {
+display: flex;
+height: 50px;
+line-height: 50px;
+        margin: 0.5rem 0;
+        padding: 0 0.9rem;
+        background: white;
+        border-radius: 5px;
+}
+
+.removeBtn {
+margin-left: auto;
+font-size: 20px;
+margin-left : auto;
+}
+
+.removeBtn:hover {
+    color: red;
+}
+
+
+body {
+padding-top: 70px;
+background-color: skyblue;
+text-align: center;
+}
+
+</style>
+{% endblock %}    
+
+{% block content %}
+    <div id='app'>
+        <h1>My Todo App!</h1>
+
+        <h5>JSH - 개발 시작 04.03 @BEM 방식 반드시 준수@</h5>
+        <br>
+
+        <div class="inputBox">
+            <input class = "inputBox__name" type="text" 
+                required placeholder ="name..." v-model.trim='name'>  <!--아래있는 변수와 input tag를 바인딩 해줍니다 이런 방식의 바인딩을 한다면 아래 Vue 파트와 양방향으로 정보를 주고 받을 수 있습니다.-->
+            <input class = "inputBox__todo" type="text" 
+                required placeholder="Enter What you want!" v-model.trim="todo" v-on:keyup.enter="add_todo"> <!--v-model은 vue다이렉트로 vue의 변수명과 Djngo 모델의 변수명과 동일합니다.  trim수식어를 사용하면 사용자가 입력한 값에서 앞뒤 공백을 제거해줍니다.-->
+            <button class = "inputBox__add" v-on:click= "add_todo()">                                       <!--정정 postData의 딕셔너리와 같아야함-->
+                Add</button>
+        </div>
+
+        <ul class="todoList">
+            <li v-for = "(todo, index) in todoList"> <!--v-for에서 인덱스는 반드시 뒤에 옵니다.-->
+                <span>[[ todo.name ]] :: [[ todo.todo ]]</span>
+                <span v-on:click="remove_todo(todo, index)" class="removeBtn">&#x00D7</span>
+            </li>
+        </ul>
+
+    </div>
+
+
+{% endblock %}
+
+{% block footer %} {% endblock  %}
+
+{% block extra-script %}
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+    <script>
+        axios.defaults.xsrfCookieName = 'csrftoken';
+        axios.defaults.xsrfHeaderName = 'X-CSRFToken'; // axios 기본값 설정입니다. 
+        var vm = new Vue({
+            delimiters: ['[[', ']]'],
+            el: '#app',
+            data: {
+                name : '',
+                todo: '',
+                todoList:[],
+            },
+            created: function() {
+                console.log("Vue is Created")
+                this.fetch_all_todo(); // 여기다가 axios를 정의하고 사용해줘도 괜찮지만 아래 methods에 따로 몰아넣는 편이 좋다. 
+            }, // Vue객체가 생성되었을때 바로 실행되는 함수
+            methods: {
+                fetch_all_todo: function() {
+                    console.log("fetch_all_todo()");
+                    
+                    var vm = this; // 뒤에 나올 
+                    axios.get("/api/todo/list/")
+                        .then(function(res) {
+                            console.log('Get RES', res);
+                            vm.todoList = res.data;
+                        })
+                        .catch(function(err) {
+                            console.log('Get ERR', err);
+                        })
+                },
+                add_todo: function() {
+                    if (this.todo == '') return;
+                    if (this.name == '') this.name = '홍길동';
+                    console.log("할 일을 추가합니다...");
+                    var vm = this;
+                    var postData = {name : this.name, todo : this.todo}; // post로 보내야할 데이터는 반드시 객체 형태여야 합니다 따라서 {}를 감싸줍니다. 
+                    axios.post('/api/todo/create/', postData) // post는 url뿐만 아니라 보낼 데이터도 같이 넣어주어야합니다.
+                        .then(function(res) {
+                            console.log('Post', res);
+                            vm.todoList.push({id: res.data.id, name: res.data.name, todo: res.data.todo});   
+                        })
+                        .catch(function(err) {
+                            console.log('Post err', err);
+                        })
+                    this.name ='';
+                    this.todo = '';
+                },
+
+                remove_todo: function(todo, index) {
+                    if (confirm('정말 삭제 하시겠습니까?') == false) return
+                    var vm = this;
+
+                    axios.delete('/api/todo/' + todo.id + '/delete/')
+                        .then(function(res) {
+                            console.log('할 일을 삭제 합니다...', res);
+                            vm.todoList.splice(index, 1);
+                        })
+                        .catch(function(err) {
+                            console.log('삭제에 실패 ㅠ', err);
+                        })
+                },
+            },            
+        })
+    </script>
+{% endblock  %}
